@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import MoviesList from "./components/MoviesList";
 import "./App.css";
+import AddMovie from "./components/AddMovie";
 
 function App() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [retrying, setRetrying] = useState(false);
 
-  const fetchMoviesHandler = async () => {
+  const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    setRetrying(false);
     try {
       const response = await fetch("https://swapi.dev/api/films/");
 
@@ -29,55 +28,34 @@ function App() {
       setMovies(transformedMovies);
     } catch (error) {
       setError("Something went wrong while fetching movies.");
-      setRetrying(true);
     }
     setIsLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
-    let retryTimer;
-    const retryFetch = () => {
-      retryTimer = setTimeout(() => {
-        if (retrying) {
-          fetchMoviesHandler();
-        }
-      }, 5000);
-    };
+    fetchMoviesHandler();
+  }, [fetchMoviesHandler]);
 
-    if (retrying) {
-      retryFetch();
-    } else {
-      clearTimeout(retryTimer);
-    }
-
-    return () => clearTimeout(retryTimer);
-  }, [retrying]);
-
-  const cancelRetryHandler = () => {
-    setRetrying(false);
+  const addMovieHandler = (movie) => {
+    console.log(movie);
   };
 
-  let content = <p>Movies not found.</p>;
-
-  if (movies.length > 0) {
-    content = <MoviesList movies={movies} />;
-  }
-
-  if (error) {
-    content = (
-      <div>
-        <p>{error}</p>
-        {retrying && <button onClick={cancelRetryHandler}>Cancel Retry</button>}
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    content = <p>Movies are Loading...</p>;
-  }
+  const content = useMemo(() => {
+    if (movies.length > 0) {
+      return <MoviesList movies={movies} />;
+    } else if (error) {
+      return <p>{error}</p>;
+    } else if (isLoading) {
+      return <p>Movies are Loading...</p>;
+    }
+    return <p>Movies not found.</p>;
+  }, [movies, error, isLoading]);
 
   return (
     <React.Fragment>
+      <section>
+        <AddMovie onAddMovie={addMovieHandler} />
+      </section>
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>
